@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s  # Scrape metrics every 15 seconds
+
+scrape_configs:
+  - job_name: 'ml-api'
+    static_configs:
+      - targets: ['ml-api:8000']  # Target is the FastAPI service exposed on port 8000
