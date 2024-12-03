@@ -1,0 +1,49 @@
+name: CI/CD Pipeline for ML API
+
+# Triggers for the workflow
+on:
+  push:
+    branches:
+      - main  # Trigger workflow on pushes to the main branch
+  pull_request:
+    branches:
+      - main  # Trigger workflow on pull requests targeting main
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Check out the repository
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      # Step 2: Log in to Docker Hub
+      - name: Log in to Docker Hub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
+
+      # Step 3: Build and push the Docker image
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/ml-model-api .
+          docker push ${{ secrets.DOCKER_USERNAME }}/ml-model-api
+
+  deploy:
+    name: Deploy to Remote Server
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      # Step 1: Deploy to the server (only if configured)
+      - name: Deploy to Server
+        if: success()
+        run: |
+          ssh -i ~/.ssh/deployment_key -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} << EOF
+          docker pull ${{ secrets.DOCKER_USERNAME }}/ml-model-api
+          docker stop ml-api || true
+          docker rm ml-api || true
+          docker run -d -p 8000:8000 --name ml-api ${{ secrets.DOCKER_USERNAME }}/ml-model-api
+          EOF
+        env:
+          DEPLOY_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
