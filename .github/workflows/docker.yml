@@ -1,4 +1,4 @@
-name: Deploy ML API
+name: Docker CI/CD Pipeline
 
 on:
   push:
@@ -6,30 +6,17 @@ on:
       - main
 
 jobs:
-  build-deploy:
+  build-and-push:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out code
-        uses: actions/checkout@v2
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up Docker
-        uses: docker/setup-buildx-action@v2
+    - name: Log in to DockerHub
+      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      - name: Log in to DockerHub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+    - name: Build Docker image
+      run: docker build -t payehmlops/ml-model-api:latest .
 
-
-      - name: Build and push Docker image
-        run: |
-          docker build -t your_dockerhub_username/ml-model-api:latest .
-          docker push your_dockerhub_username/ml-model-api:latest
-
-      - name: Deploy to Server
-        run: |
-          ssh username@server "docker pull your_dockerhub_username/ml-model-api:latest && \
-                               docker stop ml-api || true && \
-                               docker rm ml-api || true && \
-                               docker run -d --name ml-api -p 8000:8000 your_dockerhub_username/ml-model-api:latest"
+    - name: Push Docker image to DockerHub
+      run: docker push payehmlops/ml-model-api:latest
