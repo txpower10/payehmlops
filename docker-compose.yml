@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  ml-api:
+    image: payehmlops/ml-model-api:latest
+    container_name: ml-api3
+    ports:
+      - "8000:8000"
+    restart: always
+
